@@ -117,9 +117,9 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
 
     // Room - Geçmiş
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    ksp("androidx.room:room-compiler:2.8.4")
 
     // In-app playback (muxing uses android.media.MediaMuxer)
     implementation("androidx.media3:media3-exoplayer:1.3.1")
