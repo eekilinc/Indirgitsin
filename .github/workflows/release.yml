@@ -48,11 +48,11 @@ jobs:
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
           "$APKSIGNER" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: debug-testing-only
           path: app/build/outputs/apk/debug/*.apk
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: validation-reports
@@ -110,7 +110,7 @@ jobs:
             bash tools/gradle-network-retry.sh :app:connectedDebugAndroidTest --stacktrace
             adb install -r -g app/build/outputs/apk/debug/app-debug.apk
             python3 tools/capture-device.py com.indirgitsin.app.preview app/build/reports/device-evidence
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: device-reports-api-${{ matrix.api-level }}
@@ -235,7 +235,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "indir-gitsin-$VERSION.apk"
           python3 tools/package-source.py "indir-gitsin-$VERSION-source.zip"
           sha256sum indir-gitsin-*.apk indir-gitsin-*-source.zip > SHA256SUMS.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: signed-release-validation
