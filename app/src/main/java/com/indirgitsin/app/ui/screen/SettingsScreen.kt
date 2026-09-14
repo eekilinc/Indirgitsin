@@ -52,6 +52,7 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val unmetered by SettingsStore.unmeteredFlow(context).collectAsState(initial = false)
+    val backgroundPlayback by SettingsStore.backgroundPlaybackFlow(context).collectAsState(initial = true)
     var updateUnavailable by remember { mutableStateOf(false) }
     var confirmHistoryClear by remember { mutableStateOf(false) }
     var showNotices by remember { mutableStateOf(false) }
@@ -256,6 +257,11 @@ fun SettingsScreen() {
         PremiumSettingCard(icon = Icons.Rounded.Wifi, title = t("unmetered_title"), subtitle = t("unmetered_sub"),
             action = { Switch(checked = unmetered, onCheckedChange = { enabled ->
                 scope.launch { SettingsStore.setUnmetered(context, enabled) }
+            }) })
+
+        PremiumSettingCard(icon = Icons.Rounded.Headphones, title = t("background_playback"), subtitle = t("background_playback_desc"),
+            action = { Switch(checked = backgroundPlayback, onCheckedChange = { enabled ->
+                scope.launch { SettingsStore.setBackgroundPlayback(context, enabled) }
             }) })
 
         // Varsayılan Kalite

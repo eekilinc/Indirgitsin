@@ -26,10 +26,14 @@ object FileDownloader {
     // Persist stable selectors only: CDN URLs expire and may exceed WorkManager's Data limit.
     suspend fun enqueue(context: Context, video: VideoInfo, option: StreamOption): Boolean {
         require(option.isDownloadable) { "Bu akış sesli video olarak indirilemiyor. Başka bir kalite seçin." }
-        return enqueueData(context, workDataOf("videoId" to video.id, "title" to video.title.take(180),
+        return enqueueData(context, workDataOf("videoId" to video.id, "sourceUrl" to video.url, "title" to video.title.take(180),
             "quality" to option.quality, "extension" to option.extension, "audioOnly" to option.isAudioOnly,
             "codec" to option.codec, "videoOnly" to option.isVideoOnly, "convertToMp3" to option.convertToMp3,
             "mp3Bitrate" to option.bitrate, "isLive" to option.isLive, "recordMinutes" to option.recordMinutes.coerceIn(1, 60)))
+    }
+
+    suspend fun prioritize(id: UUID) {
+        DownloadQueueCoordinator.prioritize(id)
     }
 
     fun cancel(context: Context, id: UUID) {
@@ -37,7 +41,7 @@ object FileDownloader {
     }
 
     suspend fun retry(context: Context, job: WorkInfo): Boolean {
-        require(job.state == WorkInfo.State.FAILED && !job.outputData.getString("videoId").isNullOrBlank()) {
+        require(job.state == WorkInfo.State.FAILED && (!job.outputData.getString("videoId").isNullOrBlank() || !job.outputData.getString("sourceUrl").isNullOrBlank())) {
             "Bu eski indirme için videoyu yeniden açıp kalite seçin."
         }
         val data = Data.Builder().putAll(job.outputData).putBoolean("manualRetry", true)
@@ -66,7 +70,7 @@ object FileDownloader {
             .putString("resumeId", source.getString("resumeId")?.let { UUID.fromString(it).toString() } ?: UUID.randomUUID().toString())
             .putBoolean("unmetered", unmetered)
             .putString("folder", SettingsStore.downloadSubfolderFlow(context).first()).build()
-        val selectors = listOf("videoId", "autoSelect", "highQuality", "audioFormat", "quality", "extension", "audioOnly", "codec", "videoOnly", "convertToMp3", "isLive", "recordMinutes")
+        val selectors = listOf("videoId", "sourceUrl", "autoSelect", "highQuality", "audioFormat", "quality", "extension", "audioOnly", "codec", "videoOnly", "convertToMp3", "isLive", "recordMinutes")
         val identity = selectors.joinToString("|") { key -> "$key=${data.keyValueMap[key]}" }
         val key = TAG + ":" + MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }

@@ -243,7 +243,17 @@ object AppStrings {
         "cancel" to "İptal",
         "confirm" to "Onayla",
         "play_internal" to "Uygulama İçi Oynat",
-        "open_with" to "Birlikte Aç"
+        "open_with" to "Birlikte Aç",
+        "picture_in_picture" to "Küçük pencere (PiP)",
+        "background_playback" to "Arka planda ses oynatma",
+        "background_playback_desc" to "Uygulama arka plandayken veya ekran kapalıyken oynatmayı sürdür",
+        "prioritize" to "Öne al",
+        "prioritized_toast" to "İndirme sıranın en başına alındı.",
+        "queue_rank" to "Sırada #%d",
+        "active_downloads_header" to "Aktif İndirmeler",
+        "waiting_downloads_header" to "Sıradaki İndirmeler",
+        "input_hint_multi" to "YouTube, SoundCloud veya Bandcamp bağlantısı",
+        "unsupported_platform" to "Desteklenmeyen bağlantı. YouTube, SoundCloud veya Bandcamp deneyin."
     )
     private val en = mapOf(
         "media_player" to "Media player",
@@ -482,7 +492,17 @@ object AppStrings {
         "cancel" to "Cancel",
         "confirm" to "Confirm",
         "play_internal" to "Play in App",
-        "open_with" to "Open With"
+        "open_with" to "Open With",
+        "picture_in_picture" to "Picture-in-Picture",
+        "background_playback" to "Background audio playback",
+        "background_playback_desc" to "Keep playing audio when app is in background or screen is off",
+        "prioritize" to "Prioritize",
+        "prioritized_toast" to "Download moved to top of queue.",
+        "queue_rank" to "Queue #%d",
+        "active_downloads_header" to "Active Downloads",
+        "waiting_downloads_header" to "Queued Downloads",
+        "input_hint_multi" to "YouTube, SoundCloud or Bandcamp link",
+        "unsupported_platform" to "Unsupported link. Try YouTube, SoundCloud or Bandcamp."
     )
 
     private val maps = mapOf("tr" to tr, "en" to en)

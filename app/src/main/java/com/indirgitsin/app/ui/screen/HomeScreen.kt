@@ -2,6 +2,7 @@ package com.indirgitsin.app.ui.screen
 
 import android.content.ClipboardManager
 import android.content.Context
+import java.util.Locale
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.text.KeyboardActions
@@ -75,10 +76,10 @@ fun HomeScreen(
     val doPaste = {
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         val text = cm?.primaryClip?.getItemAt(0)?.text?.toString()
-        val url = YoutubeLinkHelper.findYoutubeUrlInText(text) ?: text
+        val url = YoutubeLinkHelper.findMediaUrlInText(text) ?: text
         if (!url.isNullOrBlank()) {
             onInputChange(url)
-            if (YoutubeLinkHelper.isValidYoutubeUrl(url)) onFetch(url)
+            if (YoutubeLinkHelper.isSupportedMediaUrl(url)) onFetch(url)
         }
         onPaste()
     }
@@ -218,7 +219,7 @@ private fun HomeLinkCard(
                     Text(t("resolve"), fontWeight = FontWeight.SemiBold)
                 }
             }
-            Text(t("link_supported"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("YouTube · Shorts · SoundCloud · Bandcamp", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -377,13 +378,27 @@ private fun YtVideoCard(video: VideoInfo, onClick: () -> Unit) {
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                     )
                 }
-                // Premium badge
-                Surface(
+                // Platform & Quality badges
+                Row(
                     modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    color = YtRed
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(" " + video.streams.size + " " + t("quality") + " ", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = when (video.serviceName.lowercase(Locale.ROOT)) {
+                            "soundcloud" -> Color(0xFFFF5500)
+                            "bandcamp" -> Color(0xFF1DA0C3)
+                            else -> YtRed
+                        }
+                    ) {
+                        Text(" ${video.serviceName} ", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 3.dp))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color.Black.copy(alpha = 0.75f)
+                    ) {
+                        Text(" " + video.streams.size + " " + t("quality") + " ", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                    }
                 }
             }
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {

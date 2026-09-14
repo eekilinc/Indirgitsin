@@ -30,21 +30,35 @@ object YoutubeExtractor {
 
     suspend fun extract(url: String, context: Context, forceRefresh: Boolean = false): Result<VideoInfo> = withContext(Dispatchers.IO) {
         try {
-            val id = YoutubeLinkHelper.extractVideoId(url)
-                ?: return@withContext Result.failure(IllegalArgumentException("Geçerli bir YouTube video bağlantısı girin."))
+            val isYoutube = YoutubeLinkHelper.isValidYoutubeUrl(url)
+            val isSupported = isYoutube || YoutubeLinkHelper.isSupportedMediaUrl(url)
+            if (!isSupported) {
+                return@withContext Result.failure(IllegalArgumentException("Desteklenmeyen medya bağlantısı. YouTube, SoundCloud veya Bandcamp linki girin."))
+            }
+
+            val cacheKey = if (isYoutube) YoutubeLinkHelper.extractVideoId(url) ?: url else url
             synchronized(cache) {
-                if (forceRefresh) cache.remove(id)
-                cache[id]?.takeIf { System.currentTimeMillis() - it.createdAt < 5 * 60_000 }?.let {
+                if (forceRefresh) cache.remove(cacheKey)
+                cache[cacheKey]?.takeIf { System.currentTimeMillis() - it.createdAt < 5 * 60_000 }?.let {
                     return@withContext Result.success(it.video)
                 }
             }
-            val direct = withTimeoutOrNull(30_000) { NewPipeHelper.extract(id) }
-            currentCoroutineContext().ensureActive()
-            // No video IDs are sent to public Piped/Invidious/Cobalt instances.
-            val extracted = direct ?: withTimeoutOrNull(60_000) { extractWeb(id, context.applicationContext) }
-                ?: error("İndirilebilir ses/video akışı bulunamadı. Canlı yayınlar ve kısıtlı videolar desteklenmeyebilir.")
-            val result = extracted.copy(streams = StreamSelector.withMp3Options(extracted.streams))
-            synchronized(cache) { cache[id] = Cached(result, System.currentTimeMillis()) }
+
+            val extracted: VideoInfo?
+            if (isYoutube) {
+                val id = YoutubeLinkHelper.extractVideoId(url)
+                    ?: return@withContext Result.failure(IllegalArgumentException("Geçerli bir YouTube video bağlantısı girin."))
+                val direct = withTimeoutOrNull(30_000) { NewPipeHelper.extract(id) }
+                currentCoroutineContext().ensureActive()
+                // No video IDs are sent to public Piped/Invidious/Cobalt instances.
+                extracted = direct ?: withTimeoutOrNull(60_000) { extractWeb(id, context.applicationContext) }
+            } else {
+                extracted = withTimeoutOrNull(45_000) { NewPipeHelper.extractUrl(url) }
+            }
+
+            val validVideo = extracted ?: error("İndirilebilir ses/video akışı bulunamadı. Bağlantıyı kontrol edin.")
+            val result = validVideo.copy(streams = StreamSelector.withMp3Options(validVideo.streams))
+            synchronized(cache) { cache[cacheKey] = Cached(result, System.currentTimeMillis()) }
             Result.success(result)
         } catch (e: CancellationException) {
             throw e

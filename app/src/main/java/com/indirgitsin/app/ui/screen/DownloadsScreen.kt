@@ -113,19 +113,33 @@ fun DownloadsScreen() {
 
     LaunchedEffect(downloadFolder, jobs.map { it.id to it.state }) { refresh() }
 
+    val queueOrder by com.indirgitsin.app.data.downloader.DownloadQueueCoordinator.queueOrder.collectAsState()
+
     val workerActive = jobs.filter { !it.state.isFinished }.map { job ->
-        ActiveDownload(job.id.mostSignificantBits,
+        val rank = queueOrder[job.id]
+        val stageRaw = job.progress.getString("stage")
+        val isQueued = stageRaw == "Sırada" || job.state == WorkInfo.State.ENQUEUED
+        ActiveDownload(
+            job.id.mostSignificantBits,
             job.progress.getString("name") ?: job.tags.firstOrNull { it.startsWith("title:") }?.removePrefix("title:") ?: "Video",
-            job.progress.getLong("bytes", 0), job.progress.getLong("total", -1),
-            if (job.state == WorkInfo.State.RUNNING) android.app.DownloadManager.STATUS_RUNNING else android.app.DownloadManager.STATUS_PENDING,
-            job.id, if (job.state == WorkInfo.State.ENQUEUED) {
+            job.progress.getLong("bytes", 0),
+            job.progress.getLong("total", -1),
+            if (job.state == WorkInfo.State.RUNNING && !isQueued) android.app.DownloadManager.STATUS_RUNNING else android.app.DownloadManager.STATUS_PENDING,
+            job.id,
+            if (job.state == WorkInfo.State.ENQUEUED) {
                 if ("network:unmetered" in job.tags) tr(language, "waiting_unmetered") else tr(language, "waiting_network")
-            } else job.progress.getString("stage") ?: tr(language, "status_pending"), job.progress.getInt("percent", 0),
-            if (job.state == WorkInfo.State.RUNNING) job.progress.getLong("speed", 0) else 0,
-            if (job.state == WorkInfo.State.RUNNING) job.progress.getLong("eta", -1) else -1,
+            } else {
+                val stage = stageRaw ?: tr(language, "status_pending")
+                if (rank != null && stage == "Sırada") "${tr(language, "queue_rank", rank)} • Sırada" else stage
+            },
+            job.progress.getInt("percent", 0),
+            if (job.state == WorkInfo.State.RUNNING && !isQueued) job.progress.getLong("speed", 0) else 0,
+            if (job.state == WorkInfo.State.RUNNING && !isQueued) job.progress.getLong("eta", -1) else -1,
             job.state == WorkInfo.State.RUNNING && job.progress.getBoolean("recording", false),
-            job.tags.firstOrNull { it.startsWith("resume:") }?.removePrefix("resume:")?.let { runCatching { UUID.fromString(it) }.getOrNull() })
-    }
+            job.tags.firstOrNull { it.startsWith("resume:") }?.removePrefix("resume:")?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        )
+    }.sortedWith(compareBy<ActiveDownload> { it.status != android.app.DownloadManager.STATUS_RUNNING }
+        .thenBy { queueOrder[it.workId] ?: Int.MAX_VALUE })
     val allActive = active + workerActive
 
     // Aktif indirmeler varsa periyodik yenile
@@ -263,6 +277,7 @@ fun DownloadsScreen() {
                 val downloadingCountText = try { String.format(downloadingCountTemplate, allActive.size) } catch (_: Exception) { downloadingCountTemplate }
                 Text(downloadingCountText, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 allActive.forEach { item ->
+                    val isWaiting = item.workId != null && (item.stage?.contains("Sırada") == true || item.status == android.app.DownloadManager.STATUS_PENDING)
                     ActiveDownloadCard(item, onStop = {
                         scope.launch {
                             try {
@@ -272,7 +287,14 @@ fun DownloadsScreen() {
                                 Toast.makeText(context, tr(language, "live_stopping"), Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) { Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show() }
                         }
-                    }, onCancel = {
+                    }, onPrioritize = if (isWaiting && item.workId != null) {
+                        {
+                            scope.launch {
+                                FileDownloader.prioritize(item.workId)
+                                Toast.makeText(context, tr(language, "prioritized_toast"), Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else null, onCancel = {
                         try {
                             if (item.workId != null) FileDownloader.cancel(context, item.workId)
                             else {
@@ -542,7 +564,12 @@ private fun scanActiveDownloads(context: Context): List<ActiveDownload> {
 }
 
 @Composable
-private fun ActiveDownloadCard(item: ActiveDownload, onStop: () -> Unit, onCancel: () -> Unit) {
+private fun ActiveDownloadCard(
+    item: ActiveDownload,
+    onStop: () -> Unit,
+    onPrioritize: (() -> Unit)? = null,
+    onCancel: () -> Unit
+) {
     val progress = item.percent?.div(100f) ?: if (item.totalBytes > 0) item.bytesDownloaded.toFloat() / item.totalBytes else 0f
     val statusText = item.stage ?: when (item.status) {
         android.app.DownloadManager.STATUS_RUNNING -> t("status_running")
@@ -560,6 +587,11 @@ private fun ActiveDownloadCard(item: ActiveDownload, onStop: () -> Unit, onCance
                     Text("$statusText • ${formatSize(item.bytesDownloaded)} / ${if (item.totalBytes>0) formatSize(item.totalBytes) else "?"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                 }
                 if (!item.recording) Text("${(progress*100).toInt()}%", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.labelLarge)
+                if (onPrioritize != null) {
+                    IconButton(onClick = onPrioritize) {
+                        Icon(Icons.Rounded.VerticalAlignTop, contentDescription = t("prioritize"), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                }
                 IconButton(onClick = onCancel) { Icon(Icons.Rounded.Close, contentDescription = t("cancel"), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
             }
             if (item.recording && item.resumeId != null) FilledTonalButton(onClick = onStop) {

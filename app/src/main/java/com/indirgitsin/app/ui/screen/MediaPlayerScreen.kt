@@ -56,7 +56,13 @@ import java.util.Locale
 
 @OptIn(UnstableApi::class)
 @Composable
-fun VideoPlayerScreen(model: VideoPlaybackModel, title: String = "", onBack: () -> Unit) {
+fun VideoPlayerScreen(
+    model: VideoPlaybackModel,
+    title: String = "",
+    isInPip: Boolean = false,
+    onEnterPip: () -> Unit = {},
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val activity = context as Activity
@@ -176,6 +182,19 @@ fun VideoPlayerScreen(model: VideoPlaybackModel, title: String = "", onBack: () 
     val displayTitle = artwork?.first?.title?.ifBlank { null } ?: title.ifBlank { t("media_player") }
     val progress = if (dragging) dragPosition else if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
 
+    if (isInPip) {
+        Box(Modifier.fillMaxSize().background(Color.Black).testTag("pip_player")) {
+            AndroidView(
+                factory = { PlayerView(it).apply { useController = false; useArtwork = false } },
+                update = { it.player = player; it.resizeMode = resizeModes[resizeIndex] },
+                onRelease = { it.player = null },
+                modifier = Modifier.fillMaxSize().testTag("video_surface")
+            )
+            if (isAudio) AudioArtwork(artwork?.second, displayTitle, artwork?.first?.artist.orEmpty())
+        }
+        return
+    }
+
     Box(Modifier.fillMaxSize().background(Color.Black).testTag("player")
         .pointerInput(player, isAudio) {
             detectTapGestures(onTap = { controls = if (isAudio) true else !controls }, onDoubleTap = { offset ->
@@ -201,6 +220,12 @@ fun VideoPlayerScreen(model: VideoPlaybackModel, title: String = "", onBack: () 
                     if (!isAudio) {
                         IconButton(onClick = { resizeIndex = (resizeIndex + 1) % resizeModes.size }) {
                             Icon(Icons.Rounded.AspectRatio, resizeLabels[resizeIndex], tint = Color.White)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                            activity.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
+                            IconButton(onClick = onEnterPip, modifier = Modifier.testTag("pip_button")) {
+                                Icon(Icons.Rounded.PictureInPictureAlt, t("picture_in_picture"), tint = Color.White)
+                            }
                         }
                         IconButton(onClick = { fullscreen = !fullscreen }, modifier = Modifier.testTag("fullscreen_toggle")) {
                             Icon(if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,

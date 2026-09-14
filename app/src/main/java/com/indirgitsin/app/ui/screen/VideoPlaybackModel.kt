@@ -39,5 +39,19 @@ class VideoPlaybackModel(application: Application, private val saved: SavedState
         saved["playing"] = player.playWhenReady
     }
 
+    fun isAudio(title: String): Boolean {
+        return if (player.currentTracks.isEmpty) {
+            isAudioExtension(title)
+        } else {
+            player.currentTracks.isTypeSelected(C.TRACK_TYPE_AUDIO) && !player.currentTracks.isTypeSelected(C.TRACK_TYPE_VIDEO)
+        }
+    }
+
     override fun onCleared() { player.release() }
+
+    companion object {
+        fun isAudioExtension(fileName: String): Boolean {
+            return fileName.substringAfterLast('.').lowercase(java.util.Locale.ROOT) in setOf("mp3", "m4a", "aac", "ogg", "wav", "opus", "flac")
+        }
+    }
 }

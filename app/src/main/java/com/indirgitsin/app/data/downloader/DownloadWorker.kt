@@ -54,7 +54,7 @@ class DownloadWorker(context: Context, parameters: WorkerParameters) : Coroutine
         createChannel()
         setProgress(workDataOf("name" to title, "stage" to "Sırada"))
         try {
-            slots.withPermit {
+            DownloadQueueCoordinator.withPermit(id) {
                 setProgress(workDataOf("name" to title, "stage" to "Bağlantı çözümleniyor…"))
                 setForeground(foreground("Bağlantı çözümleniyor…", 0))
                 performDownload()
@@ -90,8 +90,10 @@ class DownloadWorker(context: Context, parameters: WorkerParameters) : Coroutine
 
     private suspend fun performDownload(): Result {
         if (inputData.getBoolean("isLive", false)) return performLiveDownload()
-        val videoId = requireNotNull(inputData.getString("videoId"))
-        val info = YoutubeExtractor.extract("https://www.youtube.com/watch?v=$videoId", applicationContext, forceRefresh = runAttemptCount > 0 || inputData.getBoolean("manualRetry", false)).getOrThrow()
+        val videoId = inputData.getString("videoId")
+        val sourceUrl = inputData.getString("sourceUrl")?.takeIf { it.isNotBlank() }
+            ?: (if (!videoId.isNullOrBlank()) "https://www.youtube.com/watch?v=$videoId" else error("İndirme hedef URL'si bulunamadı."))
+        val info = YoutubeExtractor.extract(sourceUrl, applicationContext, forceRefresh = runAttemptCount > 0 || inputData.getBoolean("manualRetry", false)).getOrThrow()
         val candidates = info.streams.filter {
             it.isDownloadable && it.extension == inputData.getString("extension") &&
                 it.quality == inputData.getString("quality") && it.isAudioOnly == inputData.getBoolean("audioOnly", false)
@@ -198,7 +200,10 @@ class DownloadWorker(context: Context, parameters: WorkerParameters) : Coroutine
         try {
             val existing = HlsRecorder.recover(directory)
             val recording = existing ?: run {
-                val url = manifestUrl ?: YoutubeExtractor.extract("https://www.youtube.com/watch?v=${inputData.getString("videoId")}",
+                val videoId = inputData.getString("videoId")
+                val sourceUrl = inputData.getString("sourceUrl")?.takeIf { it.isNotBlank() }
+                    ?: (if (!videoId.isNullOrBlank()) "https://www.youtube.com/watch?v=$videoId" else error("Yayın adresi bulunamadı."))
+                val url = manifestUrl ?: YoutubeExtractor.extract(sourceUrl,
                     applicationContext, forceRefresh = true).getOrThrow().streams.firstOrNull { it.isLive }?.url
                     ?: error("Bu yayın şu anda desteklenen canlı HLS akışını sunmuyor.")
                 recordingNow = true

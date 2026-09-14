@@ -129,19 +129,19 @@ jobs:
           path: apk
       - name: Prepare tested APK and checksum
         run: |
-          mv apk/app-debug.apk "indir-gitsin-1.2.0-dev.${GITHUB_RUN_NUMBER}-preview.apk"
+          mv apk/app-debug.apk "indir-gitsin-1.3.0-dev.${GITHUB_RUN_NUMBER}-preview.apk"
           sha256sum indir-gitsin-*.apk > SHA256SUMS.txt
       - name: Publish test prerelease
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          tag_name: v1.2.0-dev.${{ github.run_number }}-preview
+          tag_name: v1.3.0-dev.${{ github.run_number }}-preview
           target_commitish: ${{ github.sha }}
-          name: İndir Gitsin 1.2.0-dev.${{ github.run_number }} — Test
+          name: İndir Gitsin 1.3.0-dev.${{ github.run_number }} — Test
           prerelease: true
           make_latest: false
           fail_on_unmatched_files: true
           body: |
-            Yeni ana sayfa, doğrulanmış parçalardan indirmeye devam ve Android 16 hedefi için test sürümü.
+            Arka planda oynatma / PiP, genişletilmiş platform desteği (SoundCloud, Bandcamp vb.) ve indirme sıralama/önceliklendirme geliştirmeleri için test sürümü.
 
             **Kurulum:** Aşağıdaki APK'yı indirip kurun. “İndir Gitsin Test” ayrı bir uygulama olarak kurulur; mevcut uygulama ve verileri korunur.
             Bu APK debug anahtarıyla imzalanmış bir ön sürümdür. Sonraki test sürümünü yüklerken yalnızca test uygulamasını kaldırmanız gerekebilir.

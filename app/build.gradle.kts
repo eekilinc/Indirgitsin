@@ -9,7 +9,7 @@ plugins {
 val gitTagVersion = System.getenv("GITHUB_REF_NAME")?.removePrefix("v")?.takeIf { it.matches(Regex("""\d+\.\d+\.\d+.*""")) }
 val runNumberVersion = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
 val appVersionCode = runNumberVersion ?: 1
-val appVersionName = gitTagVersion ?: "1.2.0-dev.$appVersionCode"
+val appVersionName = gitTagVersion ?: "1.3.0-dev.$appVersionCode"
 val releaseStore = System.getenv("RELEASE_STORE_FILE")
 val releaseStorePassword = System.getenv("RELEASE_STORE_PASSWORD")
 val releaseAlias = System.getenv("RELEASE_KEY_ALIAS")

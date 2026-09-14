@@ -9,7 +9,8 @@ data class VideoInfo(
     val viewCount: Long,
     val url: String,
     val streams: List<StreamOption> = emptyList(),
-    val isLive: Boolean = false
+    val isLive: Boolean = false,
+    val serviceName: String = "YouTube"
 )
 
 data class StreamOption(

@@ -40,6 +40,48 @@ object YoutubeLinkHelper {
         return Regex("https?://[^\\s<>]+").findAll(text).map { it.value.trimEnd('.', ',', ')', ']', '!', ';') }
             .firstOrNull { isValidYoutubeUrl(it) }
     }
+
+    fun isSoundCloudUrl(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        val u = try { URI(url.trim()) } catch (_: Exception) { return false }
+        val host = u.host?.lowercase() ?: return false
+        return (host == "soundcloud.com" || host.endsWith(".soundcloud.com") || host == "on.soundcloud.com") &&
+            !u.path.isNullOrBlank() && u.path.trim('/') != ""
+    }
+
+    fun isBandcampUrl(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        val u = try { URI(url.trim()) } catch (_: Exception) { return false }
+        val host = u.host?.lowercase() ?: return false
+        return (host.endsWith(".bandcamp.com") || host == "bandcamp.com") &&
+            !u.path.isNullOrBlank() && (u.path.contains("/track/") || u.path.contains("/album/"))
+    }
+
+    fun isMediaCccUrl(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        val u = try { URI(url.trim()) } catch (_: Exception) { return false }
+        val host = u.host?.lowercase() ?: return false
+        return host == "media.ccc.de" && !u.path.isNullOrBlank()
+    }
+
+    fun detectPlatform(url: String?): String? {
+        return when {
+            isValidYoutubeUrl(url) -> "YouTube"
+            isSoundCloudUrl(url) -> "SoundCloud"
+            isBandcampUrl(url) -> "Bandcamp"
+            isMediaCccUrl(url) -> "MediaCCC"
+            else -> null
+        }
+    }
+
+    fun isSupportedMediaUrl(url: String?): Boolean = detectPlatform(url) != null
+
+    fun findMediaUrlInText(text: String?): String? {
+        if (text.isNullOrBlank()) return null
+        return Regex("https?://[^\\s<>]+").findAll(text).map { it.value.trimEnd('.', ',', ')', ']', '!', ';') }
+            .firstOrNull { isSupportedMediaUrl(it) }
+    }
+
     fun formatDuration(seconds: Long): String {
         val safe = seconds.coerceAtLeast(0)
         val h = safe / 3600

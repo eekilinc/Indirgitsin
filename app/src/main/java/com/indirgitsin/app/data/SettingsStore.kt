@@ -19,6 +19,10 @@ object SettingsStore {
     private val KEY_APP_COLOR = stringPreferencesKey("app_color")
     private val KEY_LANGUAGE = stringPreferencesKey("app_language")
     private val KEY_UNMETERED = booleanPreferencesKey("unmetered_only")
+    private val KEY_BACKGROUND_PLAYBACK = booleanPreferencesKey("background_playback")
+
+    fun backgroundPlaybackFlow(context: Context): Flow<Boolean> = context.settingsDataStore.data.map { it[KEY_BACKGROUND_PLAYBACK] ?: true }
+    suspend fun setBackgroundPlayback(context: Context, value: Boolean) { context.settingsDataStore.edit { it[KEY_BACKGROUND_PLAYBACK] = value } }
 
     fun unmeteredFlow(context: Context): Flow<Boolean> = context.settingsDataStore.data.map { it[KEY_UNMETERED] ?: false }
     suspend fun setUnmetered(context: Context, value: Boolean) { context.settingsDataStore.edit { it[KEY_UNMETERED] = value } }

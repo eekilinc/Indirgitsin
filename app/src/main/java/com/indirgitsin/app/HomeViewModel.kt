@@ -41,12 +41,12 @@ class HomeViewModel : ViewModel() {
     fun fetch(url: String, context: android.content.Context) {
         fetchJob?.cancel()
         val appContext = context.applicationContext
-        val normalized = YoutubeLinkHelper.findYoutubeUrlInText(url) ?: url
-        if (!YoutubeLinkHelper.isValidYoutubeUrl(normalized)) {
-            _uiState.value = UiState.Error("Geçerli bir YouTube / YouTube Music linki gir. Örn: https://youtu.be/... veya playlist linki")
+        val normalized = YoutubeLinkHelper.findMediaUrlInText(url) ?: url.trim()
+        if (!YoutubeLinkHelper.isSupportedMediaUrl(normalized)) {
+            _uiState.value = UiState.Error("Geçerli bir YouTube, SoundCloud veya Bandcamp linki girin.")
             return
         }
-        val playlistId = YoutubeLinkHelper.extractPlaylistId(normalized)
+        val playlistId = if (YoutubeLinkHelper.isValidYoutubeUrl(normalized)) YoutubeLinkHelper.extractPlaylistId(normalized) else null
         _uiState.value = UiState.Loading
         fetchJob = viewModelScope.launch {
             // Once playlist dene
@@ -58,12 +58,12 @@ class HomeViewModel : ViewModel() {
                     return@launch
                 }
             }
-            // Video olarak dene
+            // Video / Medya olarak dene
             val result = YoutubeExtractor.extract(normalized, appContext)
             ensureActive()
             result.onSuccess { video ->
                 if (video.streams.isEmpty()) {
-                    _uiState.value = UiState.Error("Video bulundu ama indirilebilir akış bulunamadı. Farklı bir video dene.")
+                    _uiState.value = UiState.Error("Medya bulundu ama indirilebilir akış bulunamadı. Farklı bir bağlantı deneyin.")
                 } else {
                     _uiState.value = UiState.Success(video)
                     try {
