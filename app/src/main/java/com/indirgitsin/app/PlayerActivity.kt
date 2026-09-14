@@ -40,7 +40,7 @@ private const val PIP_ACTION_PAUSE = 2
 private const val PIP_ACTION_REWIND = 3
 private const val PIP_ACTION_FORWARD = 4
 
-/** A dedicated, private playback window with PiP and background audio support. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlayerActivity : ComponentActivity() {
     private val playback: VideoPlaybackModel by viewModels()
     private val isInPipState = mutableStateOf(false)
@@ -76,11 +76,7 @@ class PlayerActivity : ComponentActivity() {
         playback.open(uri)
 
         val filter = IntentFilter(ACTION_PIP_CONTROL)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.registerReceiver(this, pipReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(pipReceiver, filter)
-        }
+        ContextCompat.registerReceiver(this, pipReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         playback.player.addListener(playerListener)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
